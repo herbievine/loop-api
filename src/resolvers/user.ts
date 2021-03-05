@@ -11,6 +11,7 @@ import { ApolloContext } from '../types'
 import { User } from '../entities/User'
 import { hash, verify } from 'argon2'
 import { validateEmail, validatePassword, validateUsername, Error } from '../utils/validators'
+import { COOKIE_NAME } from '../constants'
 
 @ObjectType()
 class FieldError {
@@ -34,8 +35,8 @@ class UserResponse {
 export class UserResolver {
     @Query(() => User, { nullable: true })
     async me(@Ctx() { em, req }: ApolloContext): Promise<User | null> {
-        if (!req.session.alpineId) return null
-        else return await em.findOne(User, { id: req.session.alpineId })
+        if (!req.session[COOKIE_NAME]) return null
+        else return await em.findOne(User, { id: req.session[COOKIE_NAME] })
     }
 
     @Mutation(() => UserResponse)
@@ -95,7 +96,7 @@ export class UserResolver {
             }
         }
 
-        req.session.alpineId = user.id
+        req.session[COOKIE_NAME] = user.id
 
         return { user }
     }
@@ -143,16 +144,34 @@ export class UserResolver {
             }
         }
 
-        req.session.alpineId = user.id
+        req.session[COOKIE_NAME] = user.id
 
         return { user }
+    }
+
+    @Mutation(() => Boolean)
+    async logout(
+        @Ctx() { req, res }: ApolloContext
+    ): Promise<boolean> {
+        return new Promise(resolve => {
+            req.session.destroy(err => {
+                res.clearCookie(COOKIE_NAME)
+
+                if (err) {
+                    console.log(err)
+                    return resolve(false)
+                }
+
+                return resolve(true)
+            })
+        })
     }
 
     @Mutation(() => Boolean)
     async deleteUser(
         @Arg('email') email: string,
         @Ctx() { em }: ApolloContext
-    ): Promise<Boolean> {
+    ): Promise<boolean> {
         await em.nativeDelete(User, { email })
 
         return true
