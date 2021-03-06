@@ -1,5 +1,5 @@
 const emailRegex: RegExp = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-const usernameRegex: RegExp = /^[a-zA-Z\-]+$/
+const usernameRegex: RegExp = /^[a-zA-Z]+$/
 
 export interface Error {
     field: 'username' | 'email' | 'password'
@@ -39,7 +39,7 @@ export const validateUsername = (
     } else if (!usernameRegex.test(username)) {
         return {
             field: 'username',
-            message: 'Username can only contain letters and hyphens'
+            message: 'Username can only contain letters'
         }
     }
 

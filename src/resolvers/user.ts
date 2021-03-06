@@ -10,13 +10,20 @@ import {
 import { ApolloContext } from '../types'
 import { User } from '../entities/User'
 import { hash, verify } from 'argon2'
-import { validateEmail, validatePassword, validateUsername, Error } from '../utils/validators'
-import { COOKIE_NAME } from '../constants'
+import {
+    validateEmail,
+    validatePassword,
+    validateUsername,
+    Error
+} from '../utils/validators'
+import { COOKIE_NAME, REDIS_PREFIX } from '../constants'
+import { sendEmail } from '../utils/sendEmail'
+import { v4 } from 'uuid'
 
 @ObjectType()
 class FieldError {
     @Field()
-    field: string
+    field: 'username' | 'email' | 'password' | 'token'
 
     @Field()
     message: string
@@ -52,16 +59,22 @@ export class UserResolver {
 
         console.log('email:', isEmailValid)
 
-        if (isEmailValid) return {
-            errors: [isEmailValid]
+        if (isEmailValid) {
+            return {
+                errors: [isEmailValid]
+            }
         }
 
-        if (isUsernameValid) return {
-            errors: [isUsernameValid]
+        if (isUsernameValid) {
+            return {
+                errors: [isUsernameValid]
+            }
         }
 
-        if (isPasswordValid) return {
-            errors: [isPasswordValid]
+        if (isPasswordValid) {
+            return {
+                errors: [isPasswordValid]
+            }
         }
 
         const hashedPassword = await hash(password)
@@ -110,24 +123,26 @@ export class UserResolver {
         const isEmailValid: Error | null = validateEmail(email)
         const isPasswordValid: Error | null = validatePassword(password)
 
-        if (isEmailValid) return {
-            errors: [isEmailValid]
+        if (isEmailValid) {
+            return {
+                errors: [isEmailValid]
+            }
         }
 
-        if (isPasswordValid) return {
-            errors: [isPasswordValid]
+        if (isPasswordValid) {
+            return {
+                errors: [isPasswordValid]
+            }
         }
 
         const user = await em.findOne(User, { email })
 
         if (!user) {
             return {
-                errors: [
-                    {
-                        field: 'email',
-                        message: "That user doesn't exist"
-                    }
-                ]
+                errors: [{
+                    field: 'email',
+                    message: "That user doesn't exist"
+                }]
             }
         }
 
@@ -135,12 +150,10 @@ export class UserResolver {
 
         if (!isValid) {
             return {
-                errors: [
-                    {
-                        field: 'password',
-                        message: 'Password is incorrect'
-                    }
-                ]
+                errors: [{
+                    field: 'password',
+                    message: 'Password is incorrect'
+                }]
             }
         }
 
@@ -150,11 +163,74 @@ export class UserResolver {
     }
 
     @Mutation(() => Boolean)
-    async logout(
-        @Ctx() { req, res }: ApolloContext
+    async forgotPassword(
+        @Arg('email') email: string,
+        @Ctx() { em, redis }: ApolloContext
     ): Promise<boolean> {
-        return new Promise(resolve => {
-            req.session.destroy(err => {
+        const user = await em.findOne(User, { email })
+
+        if (user) {
+            const token = v4()
+
+            await redis.set(
+                REDIS_PREFIX + token,
+                user.id,
+                'ex',
+                1000 * 60 * 60 * 24
+            )
+
+            await sendEmail(user.email, token)
+        }
+
+        return true
+    }
+
+    @Mutation(() => UserResponse)
+    async changePassword(
+        @Arg('token') token: string,
+        @Arg('password') password: string,
+        @Ctx() { em, redis, req }: ApolloContext
+    ): Promise<UserResponse> {
+        const isPasswordValid: Error | null = validatePassword(password)
+
+        if (isPasswordValid) {
+            return {
+                errors: [isPasswordValid]
+            }
+        }
+            
+        const userId = await redis.get(REDIS_PREFIX + token)
+
+        if (!userId) {
+            return {
+                errors: [{
+                    field: 'token',
+                    message: 'That token has expired'
+                }]
+            }
+        }
+
+        const user = await em.findOne(User, { id: parseInt(userId) })
+
+        if (!user) {
+            return {
+                errors: [{
+                    field: 'email',
+                    message: 'That user no longer exists'
+                }]
+            }
+        }
+
+        user.password = await hash(password)
+        em.persistAndFlush(user)
+
+        return { user }
+    }
+
+    @Mutation(() => Boolean)
+    async logout(@Ctx() { req, res }: ApolloContext): Promise<boolean> {
+        return new Promise((resolve) => {
+            req.session.destroy((err) => {
                 res.clearCookie(COOKIE_NAME)
 
                 if (err) {

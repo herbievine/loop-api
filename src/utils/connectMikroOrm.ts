@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import { MikroORM } from '@mikro-orm/core'
-import mikroConfig from './mikro-orm.config'
+import mikroConfig from '../mikro-orm.config'
 
 const initMikroOrm = async () => {
     const orm = await MikroORM.init(mikroConfig)
