@@ -41,9 +41,9 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
     @Query(() => User, { nullable: true })
-    async me(@Ctx() { em, req }: ApolloContext): Promise<User | null> {
-        if (!req.session[COOKIE_NAME]) return null
-        else return await em.findOne(User, { id: req.session[COOKIE_NAME] })
+    async me(@Ctx() { req }: ApolloContext): Promise<User | undefined> {
+        if (!req.session[COOKIE_NAME]) return undefined
+        else return await User.findOne(req.session[COOKIE_NAME])
     }
 
     @Mutation(() => UserResponse)
@@ -51,8 +51,8 @@ export class UserResolver {
         @Arg('email') email: string,
         @Arg('username') username: string,
         @Arg('password') password: string,
-        @Ctx() { em, req }: ApolloContext
-    ): Promise<UserResponse> {
+        @Ctx() { req }: ApolloContext
+    ): Promise<UserResponse | undefined> {
         const isEmailValid: Error | null = validateEmail(email)
         const isUsernameValid: Error | null = validateUsername(username)
         const isPasswordValid: Error | null = validatePassword(password)
@@ -79,14 +79,16 @@ export class UserResolver {
 
         const hashedPassword = await hash(password)
 
-        const user = em.create(User, {
-            email,
-            username: username.toLowerCase(),
-            password: hashedPassword
-        })
-
         try {
-            await em.persistAndFlush(user)
+            const user: User = await User.create({
+                email,
+                username: username.toLowerCase(),
+                password: hashedPassword
+            }).save()
+
+            req.session[COOKIE_NAME] = user.id
+
+            return { user }
         } catch (err) {
             if (err.code === '23505' && err.detail.includes('username')) {
                 return {
@@ -106,19 +108,17 @@ export class UserResolver {
                         }
                     ]
                 }
+            } else {
+                return undefined
             }
         }
-
-        req.session[COOKIE_NAME] = user.id
-
-        return { user }
     }
 
     @Mutation(() => UserResponse)
     async login(
         @Arg('email') email: string,
         @Arg('password') password: string,
-        @Ctx() { em, req }: ApolloContext
+        @Ctx() { req }: ApolloContext
     ): Promise<UserResponse> {
         const isEmailValid: Error | null = validateEmail(email)
         const isPasswordValid: Error | null = validatePassword(password)
@@ -135,7 +135,7 @@ export class UserResolver {
             }
         }
 
-        const user = await em.findOne(User, { email })
+        const user = await User.findOne({ email })
 
         if (!user) {
             return {
@@ -165,9 +165,9 @@ export class UserResolver {
     @Mutation(() => Boolean)
     async forgotPassword(
         @Arg('email') email: string,
-        @Ctx() { em, redis }: ApolloContext
+        @Ctx() { redis }: ApolloContext
     ): Promise<boolean> {
-        const user = await em.findOne(User, { email })
+        const user = await User.findOne({ email })
 
         if (user) {
             const token = v4()
@@ -189,7 +189,7 @@ export class UserResolver {
     async changePassword(
         @Arg('token') token: string,
         @Arg('password') password: string,
-        @Ctx() { em, redis, req }: ApolloContext
+        @Ctx() { redis }: ApolloContext
     ): Promise<UserResponse> {
         const isPasswordValid: Error | null = validatePassword(password)
 
@@ -210,7 +210,9 @@ export class UserResolver {
             }
         }
 
-        const user = await em.findOne(User, { id: parseInt(userId) })
+        const id = parseInt(userId)
+
+        const user = await User.findOne(id)
 
         if (!user) {
             return {
@@ -221,8 +223,11 @@ export class UserResolver {
             }
         }
 
-        user.password = await hash(password)
-        em.persistAndFlush(user)
+        User.update({id}, {
+            password: await hash(password)
+        })
+
+        await redis.del(REDIS_PREFIX + token)
 
         return { user }
     }
@@ -245,10 +250,9 @@ export class UserResolver {
 
     @Mutation(() => Boolean)
     async deleteUser(
-        @Arg('email') email: string,
-        @Ctx() { em }: ApolloContext
+        @Arg('email') email: string
     ): Promise<boolean> {
-        await em.nativeDelete(User, { email })
+        await User.delete({email})
 
         return true
     }

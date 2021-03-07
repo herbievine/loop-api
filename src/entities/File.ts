@@ -1,26 +1,34 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core'
 import { Field, ObjectType } from 'type-graphql'
+import { Column, PrimaryGeneratedColumn, Entity, CreateDateColumn, UpdateDateColumn, BaseEntity, ManyToOne } from 'typeorm'
+import { User } from './User'
 
 @ObjectType()
 @Entity()
-export class File {
+export class File extends BaseEntity {
     @Field()
-    @PrimaryKey()
+    @PrimaryGeneratedColumn()
     id!: number
 
     @Field(() => String)
-    @Property({ type: 'date' })
-    createdAt = new Date()
+    @CreateDateColumn()
+    createdAt: Date
 
     @Field(() => String)
-    @Property({ type: 'date', onUpdate: () => new Date() })
-    updatedAt = new Date()
+    @UpdateDateColumn()
+    updatedAt: Date
 
     @Field()
-    @Property({ type: 'text' })
+    @Column()
     title!: string
 
     @Field()
-    @Property({ type: 'text' })
+    @Column()
     text: string
+
+    @Field()
+    @Column()
+    creatorId: number
+
+    @ManyToOne(() => User, user => user.files)
+    creator: User
 }

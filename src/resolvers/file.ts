@@ -1,62 +1,56 @@
 import { File } from '../entities/File'
-import { ApolloContext } from 'src/types'
-import { Arg, Ctx, Mutation, Query, Resolver } from 'type-graphql'
+import { Arg, Mutation, Query, Resolver } from 'type-graphql'
 
 @Resolver()
 export class FileResolver {
     @Query(() => [File])
-    files(@Ctx() { em }: ApolloContext): Promise<File[]> {
-        return em.find(File, {})
+    files(): Promise<File[]> {
+        return File.find()
     }
 
     @Query(() => File, { nullable: true })
     file(
-        @Arg('id') id: number,
-        @Ctx() { em }: ApolloContext
-    ): Promise<File | null> {
-        return em.findOne(File, { id })
+        @Arg('id') id: number
+    ): Promise<File | undefined> {
+        return File.findOne(id)
     }
 
     @Mutation(() => File)
     async createFile(
-        @Arg('title') title: string,
-        @Ctx() { em }: ApolloContext
+        @Arg('title') title: string
     ): Promise<File> {
-        const file = em.create(File, {
+        return File.create({
             title,
             text: 'Write something amazing...'
-        })
-        await em.persistAndFlush(file)
-
-        return file
+        }).save()
     }
 
     @Mutation(() => File, { nullable: true })
     async updateFile(
         @Arg('id') id: number,
-        @Arg('title', () => String, { nullable: true })
-        title: string | undefined,
-        @Arg('text', () => String, { nullable: true }) text: string | undefined,
-        @Ctx() { em }: ApolloContext
+        @Arg('title', () => String, { nullable: true }) title: string | undefined,
+        @Arg('text', () => String, { nullable: true }) text: string | undefined
     ): Promise<File | null> {
-        const file = await em.findOne(File, { id })
+        const file = await File.findOne(id)
 
         if (!file) return null
 
-        if (typeof title !== 'undefined') file.title = title
-        if (typeof text !== 'undefined') file.text = text
+        if (typeof title !== 'undefined') {
+            await File.update({id}, {title})
+        }
 
-        await em.persistAndFlush(file)
+        if (typeof text !== 'undefined') {
+            await File.update({id}, {text})
+        }
 
         return file
     }
 
     @Mutation(() => Boolean)
     async deleteFile(
-        @Arg('id') id: number,
-        @Ctx() { em }: ApolloContext
+        @Arg('id') id: number
     ): Promise<Boolean> {
-        await em.nativeDelete(File, { id })
+        await File.delete(id)
 
         return true
     }
