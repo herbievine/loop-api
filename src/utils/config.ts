@@ -6,6 +6,14 @@ import session from 'express-session'
 import { COOKIE_NAME } from '../constants'
 import { Redis } from 'ioredis'
 import { RedisStore } from 'connect-redis'
+import cors from 'cors'
+
+const whitelist = [
+    'http://localhost:8080',
+    'http://localhost:4000',
+    'https://alpine-webapp.netlify.app',
+    'alpine-web.vercel.app'
+]
 
 const initDatabase = async () => await createConnection({
     type: 'postgres',
@@ -36,4 +44,18 @@ const initSession = (redis: Redis, Store: RedisStore) => session({
     resave: false
 })
 
-export { initDatabase, initSession }
+const initCors = (): Parameters<typeof cors>[0] => ({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true)
+
+        if (whitelist.indexOf(origin) === -1) {
+            const msg = `This site ${origin} does not have an access. Only specific domains are allowed to access it.`
+            return callback(new Error(msg), false)
+        }
+
+        return callback(null, true)
+    },
+    credentials: true
+})
+
+export { initDatabase, initSession, initCors }
