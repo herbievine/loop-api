@@ -11,13 +11,12 @@ import cors from 'cors'
 const whitelist = [
     'http://localhost:8080',
     'http://localhost:4000',
-    'https://alpine-webapp.netlify.app',
-    'alpine-web.vercel.app'
+    'https://loop-sigma.vercel.app/'
 ]
 
 const initDatabase = async () => await createConnection({
     type: 'postgres',
-    database: process.env.DB_NAME ?? 'alpine',
+    database: process.env.DB_NAME ?? 'loop',
     username: process.env.DB_USERNAME ?? 'postgres',
     password: process.env.DB_PASSWORD ?? 'postgres',
     logging: process.env.NODE_ENV !== 'production',

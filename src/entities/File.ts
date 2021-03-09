@@ -1,13 +1,21 @@
 import { Field, ObjectType } from 'type-graphql'
-import { Column, PrimaryGeneratedColumn, Entity, CreateDateColumn, UpdateDateColumn, BaseEntity, ManyToOne } from 'typeorm'
+import {
+    Column,
+    PrimaryGeneratedColumn,
+    Entity,
+    CreateDateColumn,
+    UpdateDateColumn,
+    BaseEntity,
+    ManyToOne
+} from 'typeorm'
 import { User } from './User'
 
 @ObjectType()
 @Entity()
 export class File extends BaseEntity {
     @Field()
-    @PrimaryGeneratedColumn()
-    id!: number
+    @PrimaryGeneratedColumn('uuid')
+    id!: string
 
     @Field(() => String)
     @CreateDateColumn()
@@ -29,6 +37,6 @@ export class File extends BaseEntity {
     @Column()
     creatorId: number
 
-    @ManyToOne(() => User, user => user.files)
+    @ManyToOne(() => User, (user) => user.files, { onDelete: 'CASCADE' })
     creator: User
 }
