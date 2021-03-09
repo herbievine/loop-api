@@ -2,9 +2,7 @@ import { File } from '../entities/File'
 import {
     Arg,
     Ctx,
-    Field,
     Mutation,
-    ObjectType,
     Query,
     Resolver,
     UseMiddleware
