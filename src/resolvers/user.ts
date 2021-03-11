@@ -82,7 +82,7 @@ export class UserResolver {
         try {
             const user: User = await User.create({
                 email,
-                username: username.toLowerCase(),
+                username: username,
                 password: hashedPassword
             }).save()
 
@@ -139,10 +139,12 @@ export class UserResolver {
 
         if (!user) {
             return {
-                errors: [{
-                    field: 'email',
-                    message: "That user doesn't exist"
-                }]
+                errors: [
+                    {
+                        field: 'email',
+                        message: "That user doesn't exist"
+                    }
+                ]
             }
         }
 
@@ -150,10 +152,12 @@ export class UserResolver {
 
         if (!isValid) {
             return {
-                errors: [{
-                    field: 'password',
-                    message: 'Password is incorrect'
-                }]
+                errors: [
+                    {
+                        field: 'password',
+                        message: 'Password is incorrect'
+                    }
+                ]
             }
         }
 
@@ -198,32 +202,34 @@ export class UserResolver {
                 errors: [isPasswordValid]
             }
         }
-            
+
         const userId = await redis.get(REDIS_PREFIX + token)
 
         if (!userId) {
             return {
-                errors: [{
-                    field: 'token',
-                    message: 'That token has expired'
-                }]
+                errors: [
+                    {
+                        field: 'token',
+                        message: 'That token has expired'
+                    }
+                ]
             }
         }
 
-        const id = parseInt(userId)
-
-        const user = await User.findOne(id)
+        const user = await User.findOne(userId)
 
         if (!user) {
             return {
-                errors: [{
-                    field: 'email',
-                    message: 'That user no longer exists'
-                }]
+                errors: [
+                    {
+                        field: 'email',
+                        message: 'That user no longer exists'
+                    }
+                ]
             }
         }
 
-        User.update({id}, {
+        User.update(userId, {
             password: await hash(password)
         })
 
@@ -249,10 +255,8 @@ export class UserResolver {
     }
 
     @Mutation(() => Boolean)
-    async deleteUser(
-        @Arg('email') email: string
-    ): Promise<boolean> {
-        await User.delete({email})
+    async deleteUser(@Arg('email') email: string): Promise<boolean> {
+        await User.delete({ email })
 
         return true
     }

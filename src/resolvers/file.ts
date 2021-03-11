@@ -1,73 +1,132 @@
 import { File } from '../entities/File'
 import {
     Arg,
-    Ctx,
+    Field,
     Mutation,
+    ObjectType,
     Query,
     Resolver,
     UseMiddleware
 } from 'type-graphql'
-import { ApolloContext } from '../types'
-import { COOKIE_NAME } from '../constants'
 import { isAuthenticated } from '../middleware/isAuthenticated'
+
+@ObjectType()
+class FileMessageError {
+    @Field()
+    message: string
+}
+
+@ObjectType()
+class FileResponse {
+    @Field(() => [FileMessageError], { nullable: true })
+    errors?: FileMessageError[]
+
+    @Field(() => File, { nullable: true })
+    data?: File
+}
+
+@ObjectType()
+class FilesResponse {
+    @Field(() => [FileMessageError], { nullable: true })
+    errors?: FileMessageError[]
+
+    @Field(() => [File], { nullable: true })
+    data?: File[]
+}
 
 @Resolver()
 export class FileResolver {
-    @Query(() => [File], { nullable: true })
-    async files(@Ctx() { req }: ApolloContext): Promise<File[] | null> {
-        const files = await File.find({ creatorId: req.session[COOKIE_NAME] })
+    @Query(() => FilesResponse, { nullable: true })
+    async files(@Arg('id') id: string): Promise<FilesResponse> {
+        const files = await File.find({
+            folderId: id
+        })
 
-        if (files.length === 0) return null
+        if (!files || files.length === 0) {
+            return {
+                errors: [
+                    {
+                        message: 'No files are linked to this folder'
+                    }
+                ]
+            }
+        }
 
-        return files
+        return { data: files }
     }
 
-    @Query(() => File, { nullable: true })
+    @Query(() => FileResponse, { nullable: true })
     @UseMiddleware(isAuthenticated)
-    async file(@Arg('id') id: string): Promise<File | null> {
+    async file(@Arg('id') id: string): Promise<FileResponse> {
         const file = await File.findOne(id)
 
-        if (!file) return null
+        if (!file) {
+            return {
+                errors: [
+                    {
+                        message: 'No file was found'
+                    }
+                ]
+            }
+        }
 
-        return file
+        return { data: file }
     }
 
-    @Mutation(() => File)
+    @Mutation(() => FileResponse, { nullable: true })
     @UseMiddleware(isAuthenticated)
     async createFile(
-        @Arg('title') title: string,
-        @Ctx() { req }: ApolloContext
-    ): Promise<File> {
+        @Arg('id') id: string,
+        @Arg('title') title: string
+    ): Promise<FileResponse> {
         const file = await File.create({
             title,
             text: 'Write something amazing...',
-            creatorId: req.session[COOKIE_NAME]
+            folderId: id
         }).save()
 
-        return file
+        if (!file) {
+            return {
+                errors: [
+                    {
+                        message: 'No file was found'
+                    }
+                ]
+            }
+        }
+
+        return { data: file }
     }
 
-    @Mutation(() => File, { nullable: true })
+    @Mutation(() => FileResponse, { nullable: true })
     @UseMiddleware(isAuthenticated)
     async updateFile(
         @Arg('id') id: string,
         @Arg('title', () => String, { nullable: true })
         title: string | undefined,
         @Arg('text', () => String, { nullable: true }) text: string | undefined
-    ): Promise<File | null> {
+    ): Promise<FileResponse> {
         const file = await File.findOne(id)
 
-        if (!file) return null
+        if (!file) {
+            return {
+                errors: [
+                    {
+                        message: 'No file was found'
+                    }
+                ]
+            }
+        }
 
         if (typeof title !== 'undefined') {
-            await File.update({ id }, { title })
+            await File.update(id, { title })
         }
 
         if (typeof text !== 'undefined') {
-            await File.update({ id }, { text })
+            await File.update(id, { text })
         }
 
-        return (await File.findOne(id))!
+        return { data: await File.findOne(id) }
     }
 
     @Mutation(() => Boolean)

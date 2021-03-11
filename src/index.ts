@@ -9,6 +9,7 @@ import session from 'express-session'
 import connectRedis from 'connect-redis'
 import { ApolloContext } from './types'
 import cors from 'cors'
+import { FolderResolver } from './resolvers/folder'
 
 const main = async () => {
     await initDatabase()
@@ -25,7 +26,7 @@ const main = async () => {
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
-            resolvers: [UserResolver, FileResolver],
+            resolvers: [UserResolver, FolderResolver, FileResolver],
             validate: false
         }),
         context: ({ req, res }): ApolloContext =>
@@ -47,4 +48,3 @@ main()
                 '===================================='
         )
     )
-

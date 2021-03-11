@@ -1,20 +1,28 @@
 import { Field, ObjectType } from 'type-graphql'
-import { BaseEntity, Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
-import { File } from './File'
+import {
+    BaseEntity,
+    Column,
+    CreateDateColumn,
+    Entity,
+    OneToMany,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
+} from 'typeorm'
+import { Folder } from './Folder'
 
 @ObjectType()
 @Entity()
 export class User extends BaseEntity {
     @Field()
-    @PrimaryGeneratedColumn()
-    id!: number
+    @PrimaryGeneratedColumn('uuid')
+    id!: string
 
     @Field(() => String)
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'date' })
     createdAt: Date
 
     @Field(() => String)
-    @UpdateDateColumn()
+    @UpdateDateColumn({ type: 'date' })
     updatedAt: Date
 
     @Field()
@@ -28,6 +36,6 @@ export class User extends BaseEntity {
     @Column()
     password!: string
 
-    @OneToMany(() => File, file => file.creator)
-    files: File[]
+    @OneToMany(() => Folder, (folder) => folder.creator)
+    folders: Folder[]
 }

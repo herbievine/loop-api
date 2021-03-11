@@ -6,13 +6,15 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     BaseEntity,
-    ManyToOne
+    ManyToOne,
+    OneToMany
 } from 'typeorm'
-import { Folder } from './Folder'
+import { User } from './User'
+import { File } from './File'
 
 @ObjectType()
 @Entity()
-export class File extends BaseEntity {
+export class Folder extends BaseEntity {
     @Field()
     @PrimaryGeneratedColumn('uuid')
     id!: string
@@ -31,12 +33,11 @@ export class File extends BaseEntity {
 
     @Field()
     @Column()
-    text: string
+    creatorId: string
 
-    @Field()
-    @Column()
-    folderId: string
+    @ManyToOne(() => User, (user) => user.folders, { onDelete: 'CASCADE' })
+    creator: User
 
-    @ManyToOne(() => Folder, (folder) => folder.files, { onDelete: 'CASCADE' })
-    folder: Folder
+    @OneToMany(() => File, (file) => file.folder)
+    files: File[]
 }
