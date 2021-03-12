@@ -1,12 +1,18 @@
 const emailRegex: RegExp = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
 const usernameRegex: RegExp = /^[a-zA-Z]+$/
+const uuidV4Regex: RegExp = /\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}\b/
 
-export interface Error {
+export interface UserError {
     field: 'username' | 'email' | 'password'
     message: string
 }
 
-export const validateEmail = (email?: string): Error | null => {
+export interface FolderOrFileError {
+    field: 'uuid'
+    message: string
+}
+
+export const validateEmail = (email?: string): UserError | null => {
     if (!email) {
         return {
             field: 'email',
@@ -25,7 +31,7 @@ export const validateEmail = (email?: string): Error | null => {
 export const validateUsername = (
     username?: string,
     minLength?: number
-): Error | null => {
+): UserError | null => {
     if (!username) {
         return {
             field: 'username',
@@ -49,7 +55,7 @@ export const validateUsername = (
 export const validatePassword = (
     password?: string,
     minLength?: number
-): Error | null => {
+): UserError | null => {
     if (!password) {
         return {
             field: 'password',
@@ -59,6 +65,22 @@ export const validatePassword = (
         return {
             field: 'password',
             message: `Password is too small. ${minLength} minimum`
+        }
+    }
+
+    return null
+}
+
+export const validateId = (uuid: string): FolderOrFileError | null => {
+    if (!uuid) {
+        return {
+            field: 'uuid',
+            message: 'ID is a required field'
+        }
+    } else if (!uuidV4Regex.test(uuid)) {
+        return {
+            field: 'uuid',
+            message: 'Invalid ID'
         }
     }
 

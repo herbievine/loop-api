@@ -9,17 +9,21 @@ import {
     UseMiddleware
 } from 'type-graphql'
 import { isAuthenticated } from '../middleware/isAuthenticated'
+import { validateId } from '../utils/validators'
 
 @ObjectType()
-class FileMessageError {
+class FileFieldError {
+    @Field()
+    field: 'uuid' | 'not found'
+
     @Field()
     message: string
 }
 
 @ObjectType()
 class FileResponse {
-    @Field(() => [FileMessageError], { nullable: true })
-    errors?: FileMessageError[]
+    @Field(() => [FileFieldError], { nullable: true })
+    errors?: FileFieldError[]
 
     @Field(() => File, { nullable: true })
     data?: File
@@ -27,8 +31,8 @@ class FileResponse {
 
 @ObjectType()
 class FilesResponse {
-    @Field(() => [FileMessageError], { nullable: true })
-    errors?: FileMessageError[]
+    @Field(() => [FileFieldError], { nullable: true })
+    errors?: FileFieldError[]
 
     @Field(() => [File], { nullable: true })
     data?: File[]
@@ -38,6 +42,14 @@ class FilesResponse {
 export class FileResolver {
     @Query(() => FilesResponse, { nullable: true })
     async files(@Arg('id') id: string): Promise<FilesResponse> {
+        const isIdValid: FileFieldError | null = validateId(id)
+
+        if (isIdValid) {
+            return {
+                errors: [isIdValid]
+            }
+        }
+
         const files = await File.find({
             folderId: id
         })
@@ -46,6 +58,7 @@ export class FileResolver {
             return {
                 errors: [
                     {
+                        field: 'not found',
                         message: 'No files are linked to this folder'
                     }
                 ]
@@ -58,12 +71,21 @@ export class FileResolver {
     @Query(() => FileResponse, { nullable: true })
     @UseMiddleware(isAuthenticated)
     async file(@Arg('id') id: string): Promise<FileResponse> {
+        const isIdValid: FileFieldError | null = validateId(id)
+
+        if (isIdValid) {
+            return {
+                errors: [isIdValid]
+            }
+        }
+
         const file = await File.findOne(id)
 
         if (!file) {
             return {
                 errors: [
                     {
+                        field: 'not found',
                         message: 'No file was found'
                     }
                 ]
@@ -79,6 +101,14 @@ export class FileResolver {
         @Arg('id') id: string,
         @Arg('title') title: string
     ): Promise<FileResponse> {
+        const isIdValid: FileFieldError | null = validateId(id)
+
+        if (isIdValid) {
+            return {
+                errors: [isIdValid]
+            }
+        }
+
         const file = await File.create({
             title,
             text: 'Write something amazing...',
@@ -89,6 +119,7 @@ export class FileResolver {
             return {
                 errors: [
                     {
+                        field: 'not found',
                         message: 'No file was found'
                     }
                 ]
@@ -106,12 +137,21 @@ export class FileResolver {
         title: string | undefined,
         @Arg('text', () => String, { nullable: true }) text: string | undefined
     ): Promise<FileResponse> {
+        const isIdValid: FileFieldError | null = validateId(id)
+
+        if (isIdValid) {
+            return {
+                errors: [isIdValid]
+            }
+        }
+
         const file = await File.findOne(id)
 
         if (!file) {
             return {
                 errors: [
                     {
+                        field: 'not found',
                         message: 'No file was found'
                     }
                 ]

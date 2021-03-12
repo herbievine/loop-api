@@ -14,7 +14,7 @@ import {
     validateEmail,
     validatePassword,
     validateUsername,
-    Error
+    UserError
 } from '../utils/validators'
 import { COOKIE_NAME, REDIS_PREFIX } from '../constants'
 import { sendEmail } from '../utils/sendEmail'
@@ -53,9 +53,9 @@ export class UserResolver {
         @Arg('password') password: string,
         @Ctx() { req }: ApolloContext
     ): Promise<UserResponse | undefined> {
-        const isEmailValid: Error | null = validateEmail(email)
-        const isUsernameValid: Error | null = validateUsername(username)
-        const isPasswordValid: Error | null = validatePassword(password)
+        const isEmailValid: UserError | null = validateEmail(email)
+        const isUsernameValid: UserError | null = validateUsername(username)
+        const isPasswordValid: UserError | null = validatePassword(password)
 
         console.log('email:', isEmailValid)
 
@@ -120,8 +120,8 @@ export class UserResolver {
         @Arg('password') password: string,
         @Ctx() { req }: ApolloContext
     ): Promise<UserResponse> {
-        const isEmailValid: Error | null = validateEmail(email)
-        const isPasswordValid: Error | null = validatePassword(password)
+        const isEmailValid: UserError | null = validateEmail(email)
+        const isPasswordValid: UserError | null = validatePassword(password)
 
         if (isEmailValid) {
             return {
@@ -195,7 +195,7 @@ export class UserResolver {
         @Arg('password') password: string,
         @Ctx() { redis }: ApolloContext
     ): Promise<UserResponse> {
-        const isPasswordValid: Error | null = validatePassword(password)
+        const isPasswordValid: UserError | null = validatePassword(password)
 
         if (isPasswordValid) {
             return {
@@ -241,7 +241,7 @@ export class UserResolver {
     @Mutation(() => Boolean)
     async logout(@Ctx() { req, res }: ApolloContext): Promise<boolean> {
         return new Promise((resolve) => {
-            req.session.destroy((err) => {
+            req.session.destroy((err: any) => {
                 res.clearCookie(COOKIE_NAME)
 
                 if (err) {
