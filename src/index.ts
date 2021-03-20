@@ -1,3 +1,4 @@
+import 'dotenv-safe/config'
 import { initCors, initDatabase, initSession } from './utils/config'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
@@ -12,14 +13,18 @@ import cors from 'cors'
 import { FolderResolver } from './resolvers/folder'
 
 const main = async () => {
-    await initDatabase()
+    const connection = await initDatabase()
+
+    // if (process.env.NODE_ENV === 'production') {
+    await connection.runMigrations()
+    // }
 
     const app = express()
 
     app.set('trust proxy', 1)
 
     const RedisStore = connectRedis(session)
-    const redis = new Redis()
+    const redis = new Redis(process.env.REDIS_URL)
 
     app.use(cors(initCors()))
     app.use(initSession(redis, RedisStore))
@@ -35,7 +40,7 @@ const main = async () => {
 
     apolloServer.applyMiddleware({ app, cors: false })
 
-    const port = process.env.PORT ?? 8080
+    const port = process.env.PORT
     app.listen(port, () => console.log(`Server running at localhost:${port}`))
 }
 
