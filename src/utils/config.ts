@@ -15,7 +15,7 @@ const initDatabase = async () =>
         type: 'postgres',
         url: process.env.DATABASE_URL,
         logging: process.env.NODE_ENV !== 'production',
-        synchronize: process.env.NODE_ENV === 'production',
+        synchronize: process.env.NODE_ENV !== 'production',
         entities: [User, Folder, File]
     })
 

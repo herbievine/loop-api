@@ -15,9 +15,9 @@ import { FolderResolver } from './resolvers/folder'
 const main = async () => {
     const connection = await initDatabase()
 
-    // if (process.env.NODE_ENV === 'production') {
-    await connection.runMigrations()
-    // }
+    if (process.env.NODE_ENV === 'production') {
+        await connection.runMigrations()
+    }
 
     const app = express()
 
