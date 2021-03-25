@@ -31,7 +31,10 @@ const initSession = (redis: Redis, Store: RedisStore) =>
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-            domain: process.env.CORS_ORIGIN
+            domain:
+                process.env.NODE_ENV === 'production'
+                    ? 'loop.herbievine.com'
+                    : undefined
         },
         saveUninitialized: false,
         secret: process.env.SESSION_SECRET,
