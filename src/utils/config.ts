@@ -33,7 +33,7 @@ const initSession = (redis: Redis, Store: RedisStore) =>
             maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
             domain:
                 process.env.NODE_ENV === 'production'
-                    ? 'loop.herbievine.com'
+                    ? '.herbievine.com'
                     : undefined
         },
         saveUninitialized: false,

@@ -1,22 +1,45 @@
 #!/bin/bash
 
+# Variables
+PREVIOUS_VERSION=`cat version.txt`
+tmp=$(mktemp)
+
+# Prints command above it 
 print() {
     echo Running -- $1
     $1
 }
 
+# Label
 echo "
 --------------------------------
         Production build            
 --------------------------------
 "
 
-echo What should the version be?
+# Remove version file
+rm version.txt
+
+# Get new version
+echo "What should the version be? (Previous version was v$PREVIOUS_VERSION)"
 read VERSION
 
+# Write version to version.txt
+echo $VERSION >> version.txt
+
+# Update the version in package.json
+jq --arg version "$VERSION" '.version=$version' package.json > "$tmp" && mv "$tmp" package.json
+
+# Push to GitHub
+git add .
+git commit -am $1
+git push
+
+# Push to Docker
 print "docker build -t herbievine/loop-api:$VERSION ."
 print "docker push herbievine/loop-api:$VERSION"
 
+# SSH into VPS and deploy container
 ssh -i C:/Users/vineh/OneDrive/Desktop/.keys/ssh root@46.101.32.15 "
     echo Running 'docker pull' &&
     docker pull herbievine/loop-api:$VERSION && 
@@ -26,11 +49,13 @@ ssh -i C:/Users/vineh/OneDrive/Desktop/.keys/ssh root@46.101.32.15 "
     dokku deploy api $VERSION
 "
 
+# Label
 echo "
 ----------------------------
         Task complete       
 ----------------------------
 "
 
+# Close after 10s
 echo Closing in 10 seconds...
 sleep 10
