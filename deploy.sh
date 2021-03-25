@@ -3,6 +3,7 @@
 # Variables
 PREVIOUS_VERSION=`cat version.txt`
 tmp=$(mktemp)
+DIGITAL_OCEAN_VPS=`printenv DIGITAL_OCEAN_LOOP`
 
 # Prints command above it 
 print() {
@@ -40,7 +41,7 @@ print "docker build -t herbievine/loop-api:$VERSION ."
 print "docker push herbievine/loop-api:$VERSION"
 
 # SSH into VPS and deploy container
-ssh -i C:/Users/vineh/OneDrive/Desktop/.keys/ssh root@46.101.32.15 "
+ssh -i C:/Users/vineh/OneDrive/Desktop/.keys/ssh root@$DIGITAL_OCEAN_VPS "
     echo Running 'docker pull' &&
     docker pull herbievine/loop-api:$VERSION && 
     echo Running 'docker tag' &&
